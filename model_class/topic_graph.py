@@ -14,27 +14,35 @@ class TopicGraph:
         self.i = 0
         
 
-    def initialize(self):
+    def initialize(self, start_lev=1):
         if self.L == 0:
             print "Count of levels is 0, returning"       
-            return            
-        self.phis = []
-        self.psis = []
-        for l in np.arange(self.L-1):
+            return     
+        if start_lev == 1: # add 0th level      
+            self.phis = []
+            self.psis = []
+            phi = np.random.rand(self.W, self.level_topic_counts[0])
+            phi /= phi.sum(axis=0)[np.newaxis, :]
+            self.phis.append(phi)
+        for l in np.arange(start_lev, self.L):
             phi = np.random.rand(self.W, self.level_topic_counts[l])
             phi /= phi.sum(axis=0)[np.newaxis, :]
             self.phis.append(phi)
-            psi = np.random.rand(self.level_topic_counts[l], \
-                                 self.level_topic_counts[l+1])
+            psi = np.random.rand(self.level_topic_counts[l-1], \
+                                 self.level_topic_counts[l])
             psi /= psi.sum(axis=0)[np.newaxis, :]
             self.psis.append(psi)
-        phi = np.random.rand(self.W, self.level_topic_counts[-1])
-        phi /= phi.sum(axis=0)[np.newaxis, :]
-        self.phis.append(phi)
         self.theta = np.random.rand(self.level_topic_counts[-1], self.D)
         self.theta /= self.theta.sum(axis=0)[np.newaxis, :]
         self.eta = np.random.rand(self.L, self.D)
         self.eta /= self.eta.sum(axis=0)[np.newaxis, :]
+        
+        
+    def add_levels(self, new_level_topic_counts):
+        self.L += len(new_level_topic_counts)
+        self.level_topic_counts += new_level_topic_counts
+        self.initialize(start_lev=self.L-len(new_level_topic_counts))
+        
         
     def construct(self, it=25):
         LL = []
@@ -108,7 +116,13 @@ class TopicGraph:
                 self.phis[l] *= 1 - step
                 self.phis[l] += step * phi_grads[l]
                 """
-                self.phis[l] *= phi_grads[l]
+                #ARTM
+                if "smooth_phi" in self.params:
+                    pow = self.params["smooth_phi"]["pow"]
+                    coef = self.params["smooth_phi"]["coef"]
+                    self.phis[l] *= phi_grads[l] + coef * pow * self.phis[l]**(pow-1)
+                else:
+                    self.phis[l] *= phi_grads[l]
                 self.phis[l] /= self.phis[l].sum(axis=0)[np.newaxis, :] +1e-30
             #update eta
             self.eta *= eta_grad

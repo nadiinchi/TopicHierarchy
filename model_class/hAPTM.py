@@ -4,7 +4,7 @@ import pickle
 import topic_graph
 
 #reload(hparams)
-#reload(topic_graph)
+reload(topic_graph)
 
 class hAPTM():
     """
@@ -110,6 +110,15 @@ class hAPTM():
                           otherwise return None
         """
         return self.graph.regularize(reg_phi, reg_psi, reg_theta, return_scores)
+         
+         
+    def add_levels(self, new_level_topics_count):
+        """
+        add new levels with specified topic counts. Keep phis and psis, destruct old theta and eta
+        
+        new_level_topics_count --- list of topic counts per NEW hierarchy level
+        """
+        self.graph.add_levels(new_level_topics_count)
          
 
     def printLevel(self, level, matrices=set(), phi_threshold=100):
